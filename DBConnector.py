@@ -50,6 +50,12 @@ def db_list_writer(models):
     new_session.close()
 
 
+def query_all(data_model: DataModel):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    return new_session.query(data_model).all()
+
+
 def cnki_query_all():
     db_session: sessionmaker = create_db_session(DBName.MySQL)
     new_session = db_session()
@@ -101,6 +107,15 @@ def update_cnki_location_city(sid, model: DataModel.CNKILocationContent):
     new_session.commit()
 
 
+def update_cnki_location_city_location(sid, model: DataModel.CNKILocationContent):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKILocationContent).filter(DataModel.CNKILocationContent.sid == sid).update(
+        {DataModel.CNKILocationContent.City_Latitude: model.City_Latitude,
+         DataModel.CNKILocationContent.City_Longitude: model.City_Longitude})
+    new_session.commit()
+
+
 def update_cnki_location_city_by_distinct():
     db_session: sessionmaker = create_db_session(DBName.MySQL)
     new_session = db_session()
@@ -121,4 +136,18 @@ def update_cnki_location_city_by_distinct():
         count = count - 1
 
 
-update_cnki_location_city_by_distinct()
+def cnki_location_query_by_province(province):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    model_list = new_session.query(DataModel.CNKILocationContent).filter(
+        DataModel.CNKILocationContent.Province == province).all()
+    return model_list
+
+
+def update_province_paper_count(province, count):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKIProvinceSumContent).filter(
+        DataModel.CNKIProvinceSumContent.province_name == province).update(
+        {DataModel.CNKIProvinceSumContent.paper_count: count})
+    new_session.commit()

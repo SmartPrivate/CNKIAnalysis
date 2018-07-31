@@ -37,3 +37,11 @@ class CNKILocationContent(Base):
     District = Column(VARCHAR(255))
     City_Longitude = Column(FLOAT)
     City_Latitude = Column(FLOAT)
+
+
+class CNKIProvinceSumContent(Base):
+    __tablename__ = 'T_CNKI_Province_Sum'
+
+    sid = Column(Integer, primary_key=True)
+    province_name = Column(VARCHAR(255))
+    paper_count = Column(Integer)
