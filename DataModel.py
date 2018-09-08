@@ -8,10 +8,27 @@ Base = declarative_base()
 
 
 class CNKIContent(Base):
+    __tablename__ = 'T_CNKI_ORI_TEMP'
+
+    sid = Column(Integer, primary_key=True)
+    SrcDatabase = Column(VARCHAR(8))
+    Title = Column(TEXT)
+    Author = Column(VARCHAR(255))
+    Organ = Column(TEXT)
+    Source = Column(NVARCHAR(255))
+    Keyword = Column(TEXT)
+    Summary = Column(TEXT)
+    PubTime = Column(DATETIME)
+    FirstDuty = Column(VARCHAR(255))
+    Fund = Column(TEXT)
+    Year = Column(Integer)
+
+
+class CNKIMainContent(Base):
     __tablename__ = 'T_CNKI_ORI'
 
     sid = Column(Integer, primary_key=True)
-    SrcDatabase = Column(VARCHAR(255))
+    SrcDatabase = Column(VARCHAR(8))
     Title = Column(TEXT)
     Author = Column(VARCHAR(255))
     Organ = Column(TEXT)
@@ -29,14 +46,25 @@ class CNKILocationContent(Base):
 
     sid = Column(Integer, primary_key=True)
     ori_sid = Column(Integer)
-    Organ = Column(VARCHAR(255))
-    Organ_Longitude = Column(FLOAT)
-    Organ_Latitude = Column(FLOAT)
-    Province = Column(VARCHAR(255))
-    City = Column(VARCHAR(255))
-    District = Column(VARCHAR(255))
-    City_Longitude = Column(FLOAT)
-    City_Latitude = Column(FLOAT)
+    organ_full_name = Column(VARCHAR(255))
+    organ_short_name = Column(VARCHAR(255))
+    organ_longitude = Column(FLOAT)
+    organ_latitude = Column(FLOAT)
+    province = Column(VARCHAR(255))
+    province_code = Column(Integer)
+    city = Column(VARCHAR(255))
+    district = Column(VARCHAR(255))
+
+
+class UniversityLocation(Base):
+    __tablename__ = 'D_University_Location'
+
+    university_name = Column(VARCHAR(50), primary_key=True)
+    province = Column(VARCHAR(50))
+    city = Column(VARCHAR(50))
+    district = Column(VARCHAR(50))
+    longitude = Column(FLOAT)
+    latitude = Column(FLOAT)
 
 
 class CNKIProvinceSumContent(Base):

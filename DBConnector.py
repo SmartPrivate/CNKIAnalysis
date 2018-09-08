@@ -1,16 +1,18 @@
+import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from enum import Enum, unique
 import DataModel
 
 import logging
+import redis
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
 localhost_str = 'mssql+pyodbc://sa:900807@localhost/OpenAcademicGraphDB?driver=ODBC+Driver+17+for+SQL+Server'
 remotehost_str = 'mssql+pyodbc://sa:Alex19900807.@192.168.22.197/WangXiaoDB?driver=ODBC+Driver+17+for+SQL+Server'
 
-DBMySQLEngine: str = 'mysql+pymysql://root:900807@localhost:3306/alex_db'
+DBMySQLEngine: str = 'mysql+pymysql://alex:Mc2460022.@192.168.22.197:3306/alex_db'
 DBSQLServerEngine: str = localhost_str
 
 
@@ -111,9 +113,31 @@ def update_cnki_location_city_location(sid, model: DataModel.CNKILocationContent
     db_session: sessionmaker = create_db_session(DBName.MySQL)
     new_session = db_session()
     new_session.query(DataModel.CNKILocationContent).filter(DataModel.CNKILocationContent.sid == sid).update(
-        {DataModel.CNKILocationContent.City_Latitude: model.City_Latitude,
-         DataModel.CNKILocationContent.City_Longitude: model.City_Longitude})
+        {DataModel.CNKILocationContent.organ_latitude: model.organ_latitude,
+         DataModel.CNKILocationContent.organ_longitude: model.organ_longitude})
     new_session.commit()
+    new_session.close()
+
+
+def update_cnki_location_city_locations(models):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    for model in models:
+        model: DataModel.CNKILocationContent
+        try:
+            new_session.query(DataModel.CNKILocationContent).filter(
+                DataModel.CNKILocationContent.sid == model.sid).update(
+                {DataModel.CNKILocationContent.province: model.province,
+                 DataModel.CNKILocationContent.city: model.city,
+                 DataModel.CNKILocationContent.district: model.district,
+                 DataModel.CNKILocationContent.organ_latitude: model.organ_latitude,
+                 DataModel.CNKILocationContent.organ_longitude: model.organ_longitude})
+            new_session.commit()
+            print('完成sid={0}'.format(model.sid))
+        except:
+            continue
+        finally:
+            new_session.close()
 
 
 def update_cnki_location_city_by_distinct():
@@ -141,6 +165,16 @@ def cnki_location_query_by_province(province):
     new_session = db_session()
     model_list = new_session.query(DataModel.CNKILocationContent).filter(
         DataModel.CNKILocationContent.Province == province).all()
+    new_session.close()
+    return model_list
+
+
+def cnki_location_query_by_province_is_null():
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    model_list = new_session.query(DataModel.CNKILocationContent).filter(
+        DataModel.CNKILocationContent.Province == None).all()
+    new_session.close()
     return model_list
 
 
@@ -151,3 +185,95 @@ def update_province_paper_count(province, count):
         DataModel.CNKIProvinceSumContent.province_name == province).update(
         {DataModel.CNKIProvinceSumContent.paper_count: count})
     new_session.commit()
+
+
+def update_new_college_name(sid, new_organ):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKIMainContent).filter(DataModel.CNKIMainContent.sid == sid).update(
+        {DataModel.CNKIMainContent.Organ: new_organ})
+    new_session.commit()
+    new_session.close()
+
+
+def delete_organ(sid):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKIMainContent).filter(DataModel.CNKIMainContent.sid == sid).delete()
+    new_session.commit()
+    new_session.close()
+
+
+def update_short_name(sid, short_name):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKILocationContent).filter(DataModel.CNKILocationContent.sid == sid).update(
+        {DataModel.CNKILocationContent.organ_short_name: short_name})
+    new_session.commit()
+    new_session.close()
+
+
+def update_short_names(short_name_list):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    for sid, short_name in short_name_list:
+        new_session.query(DataModel.CNKILocationContent).filter(DataModel.CNKILocationContent.sid == sid).update(
+            {DataModel.CNKILocationContent.organ_short_name: short_name})
+        new_session.commit()
+    new_session.close()
+
+
+def update_new_old_name(old_name, new_name):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKILocationContent).filter(
+        DataModel.CNKILocationContent.organ_short_name == old_name).update(
+        {DataModel.CNKILocationContent.organ_short_name: new_name})
+    new_session.commit()
+    new_session.close()
+
+
+def update_location_info_by_organ_short_name(organ, city_dict):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    new_session.query(DataModel.CNKILocationContent).filter(
+        DataModel.CNKILocationContent.organ_short_name == organ).update(
+        {DataModel.CNKILocationContent.province: city_dict['province'],
+         DataModel.CNKILocationContent.city: city_dict['province'],
+         DataModel.CNKILocationContent.district: city_dict['district'],
+         DataModel.CNKILocationContent.organ_longitude: city_dict['longitude'],
+         DataModel.CNKILocationContent.organ_latitude: city_dict['latitude']})
+    new_session.commit()
+    new_session.close()
+
+
+def check_university_by_name(organ):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    try:
+        new_session.query(DataModel.UniversityLocation).filter(
+            DataModel.UniversityLocation.university_name == organ).one()
+        return True
+    except sqlalchemy.orm.exc.NoResultFound:
+        return False
+    finally:
+        new_session.close()
+
+
+def add_province_code():
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    lines = open('province_code.txt', 'r', encoding='utf-8').readlines()
+    province_dict = {}
+    for line in lines:
+        line_items = line.split(':')
+        key = line_items[0]
+        value = line_items[1].replace('\n', '')
+        province_dict[key] = value
+    for key in province_dict.keys():
+        new_session.query(DataModel.CNKILocationContent).filter(DataModel.CNKILocationContent.province == key).update(
+            {DataModel.CNKILocationContent.province_code: province_dict[key]})
+        new_session.commit()
+    new_session.close()
+
+add_province_code()

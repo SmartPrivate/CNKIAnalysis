@@ -1,5 +1,6 @@
 import logging
 import DBConnector, DataModel
+import re
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -50,4 +51,58 @@ def province_count():
     DBConnector.db_list_writer(model_list)
 
 
-# province_count()
+def init_location_table():
+    models: [DataModel.CNKIMainContent] = DBConnector.query_all(DataModel.CNKIMainContent)
+    organ_model_list = []
+    for model in models:
+        if not model.Organ:
+            continue
+        for organ in model.Organ.split(';'):
+            organ_model = DataModel.CNKILocationContent()
+            organ_model.organ_full_name = organ
+            organ_model.ori_sid = model.sid
+            organ_model_list.append(organ_model)
+    DBConnector.db_list_writer(organ_model_list)
+
+
+def organ_cleaning():
+    models = DBConnector.query_all(DataModel.CNKIMainContent)
+    for model in models:
+        model: DataModel.CNKIMainContent
+        if not model.Organ:
+            continue
+        if model.Organ in ['计算机仿真', '计算机应用', '计算机应用研究', '软件学报', '计算机辅助设计与图形学学报', '图象图形', '图学学报', '系统仿真学报', '中文信息学报']:
+            DBConnector.delete_organ(model.sid)
+            continue
+        if not re.search('\d\d\d\d\d\d', model.Organ) and not re.search('^[a-zA-Z]', model.Organ) and not re.search(
+                '\d\d\d\d\d', model.Organ):
+            continue
+        organs = model.Organ.split(';')
+        organ_list = []
+        for organ in organs:
+            if re.search('\d\d\d\d\d\d', organ):
+                continue
+            if re.search('^[a-zA-Z]', organ):
+                continue
+            if re.match('\d\d\d\d\d', organ):
+                continue
+            organ_list.append(organ)
+        new_organ = ';'.join(organ_list)
+        DBConnector.update_new_college_name(model.sid, new_organ)
+
+
+def get_short_organ_name(keyword):
+    models = DBConnector.query_all(DataModel.CNKILocationContent)
+    short_name_list = []
+    for model in models:
+        model: DataModel.CNKILocationContent
+        if model.organ_short_name:
+            continue
+        if keyword in model.organ_full_name:
+            short_name = model.organ_full_name[:model.organ_full_name.index(keyword) + len(keyword)]
+            if '(' in short_name:
+                short_name = short_name[short_name.index('(') + 1:]
+            short_name_list.append((model.sid, short_name))
+    DBConnector.update_short_names(short_name_list)
+
+
