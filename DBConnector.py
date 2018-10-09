@@ -12,7 +12,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=loggin
 localhost_str = 'mssql+pyodbc://sa:900807@localhost/OpenAcademicGraphDB?driver=ODBC+Driver+17+for+SQL+Server'
 remotehost_str = 'mssql+pyodbc://sa:Alex19900807.@192.168.22.197/WangXiaoDB?driver=ODBC+Driver+17+for+SQL+Server'
 
-DBMySQLEngine: str = 'mysql+pymysql://alex:Mc2460022.@192.168.22.197:3306/alex_db'
+DBMySQLEngine: str = 'mysql+pymysql://root:Alex19900807.@localhost:3306/alex_db'
 DBSQLServerEngine: str = localhost_str
 
 
@@ -276,4 +276,81 @@ def add_province_code():
         new_session.commit()
     new_session.close()
 
-add_province_code()
+
+def update_all(dist_tuple_list):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    for item in dist_tuple_list:
+        temp_id, proname, procode, cityname, citycode, distcode = item
+        new_session.query(DataModel.China_AL6_AL6).filter(DataModel.China_AL6_AL6.id == temp_id).update(
+            {DataModel.China_AL6_AL6.proname: proname, DataModel.China_AL6_AL6.procode: procode,
+             DataModel.China_AL6_AL6.cityname: cityname, DataModel.China_AL6_AL6.citycode: citycode,
+             DataModel.China_AL6_AL6.distcode: distcode})
+        new_session.commit()
+        print('Finish {0}'.format(temp_id))
+
+
+def update_paper_count(paper_tuple_list):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    for item in paper_tuple_list:
+        new_session.query(DataModel.China_AL6_AL6).filter(DataModel.China_AL6_AL6.id == item[0]).update(
+            {DataModel.China_AL6_AL6.pacount: item[1]})
+        new_session.commit()
+        print('updated {0}'.format(item[0]))
+    new_session.close()
+
+
+def query_cnki_main_by_year(year_start, year_end):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    models = new_session.query(DataModel.CNKIMainContent).filter(DataModel.CNKIMainContent.Year >= year_start,
+                                                                 DataModel.CNKIMainContent.Year < year_end).all()
+    ori_sid_list = []
+    for model in models:
+        ori_sid_list.append(model.sid)
+    new_session.close()
+    return ori_sid_list
+
+
+def query_cnki_location_by_year_range(year_start, year_end):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    models = new_session.query(DataModel.CNKIMainContent).filter(DataModel.CNKIMainContent.Year >= year_start,
+                                                                 DataModel.CNKIMainContent.Year < year_end).all()
+    ori_sid_list = list(map(lambda o: o.sid, models))
+    locations = new_session.query(DataModel.CNKILocationContent).filter(
+        DataModel.CNKILocationContent.ori_sid.in_(ori_sid_list)).all()
+    new_session.close()
+    return locations
+
+
+def get_id_by_dist_code(dist_code):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    try:
+        id_ = new_session.query(DataModel.China_AL6_AL6).filter(DataModel.China_AL6_AL6.distcode == dist_code).one().id
+    except sqlalchemy.orm.exc.NoResultFound:
+        id_ = ''
+    finally:
+        new_session.close()
+    return id_
+
+
+def get_city_name_by_map_id(id_list):
+    db_session: sessionmaker = create_db_session(DBName.MySQL)
+    new_session = db_session()
+    city_list = []
+    result_list = []
+    city_models = new_session.query(DataModel.China_AL6_AL6).filter(DataModel.China_AL6_AL6.id.in_(id_list)).all()
+    new_session.close()
+    for model in city_models:
+        city_list.append(model.cityname)
+    city_set = set(city_list)
+    for city in city_set:
+        city_dist_models = list(filter(lambda o: o.cityname == city, city_models))
+        dist_list = []
+        for dist in city_dist_models:
+            dist_list.append(dist.distname)
+        result_list.append(city + ':' + ','.join(dist_list))
+    return result_list

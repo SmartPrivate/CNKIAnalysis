@@ -1,9 +1,12 @@
-import logging
-import DBConnector, DataModel
-import requests
 import json
+import logging
 import time
+
 import redis
+import requests
+
+import DBConnector
+import DataModel
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -152,11 +155,6 @@ def update_college_name(old_name, new_name):
     update_one_organ(new_name)
 
 
-def update_college_and_city(old_name, new_name):
-    new_old_name_clean(old_name, new_name)
-    update_one_organ(new_name)
-
-
 def get_location_by_organ_city(organ, city):
     r = redis.Redis(host='192.168.22.197', port=8173, db=1, encoding='gbk', decode_responses=True)
     if r.exists(organ):
@@ -198,14 +196,7 @@ def get_city_by_old_new(old_name, new_name, city):
     r.set(old_name, new_name)
     print('已存入{0}和{1}对应关系'.format(old_name, new_name))
     if get_location_by_organ_city(new_name, city):
-        update_college_and_city(old_name, new_name)
+        update_college_name(old_name, new_name)
 
 
-# get_city_test_autonavi('中国舰船研究院','北京')
-
-
-
-old = '浙江省可视媒体智能处理技术研究重点实验室'
-new = '浙江工业大学'
-city_name = '宁波'
-get_city_by_old_new(old, new, city_name)
+get_city_test_autonavi('东莞职业技术学院','东莞')

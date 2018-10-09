@@ -38,19 +38,6 @@ def init_main_table():
     DBConnector.db_list_writer(normal_list)
 
 
-def province_count():
-    model_list = []
-    provinces = open('province.txt', 'r').read().split('\n')
-    for province in provinces:
-        model = DataModel.CNKIProvinceSumContent()
-        model.province_name = province
-        count = len(DBConnector.cnki_location_query_by_province(province))
-        model.paper_count = count
-        model_list.append(model)
-        # DBConnector.update_province_paper_count(province, count)
-    DBConnector.db_list_writer(model_list)
-
-
 def init_location_table():
     models: [DataModel.CNKIMainContent] = DBConnector.query_all(DataModel.CNKIMainContent)
     organ_model_list = []
@@ -106,3 +93,23 @@ def get_short_organ_name(keyword):
     DBConnector.update_short_names(short_name_list)
 
 
+def get_locations_by_year():
+    for year in range(2002, 2018, 5):
+        location_models = DBConnector.query_cnki_location_by_year_range(year - 5, year)
+        count_tuple_list = []
+        dist_code_list = list(map(lambda o: o.district_code, location_models))
+        dist_code_set = set(dist_code_list)
+        for dist_code in dist_code_set:
+            id_ = DBConnector.get_id_by_dist_code(dist_code)
+            if id_ == '':
+                continue
+            count_tuple_list.append((id_, len(list(filter(lambda o: o == dist_code, dist_code_list)))))
+        with open('{0}_{1}.csv'.format(str(year - 5), str(year-1)), 'a', encoding='utf-8') as f:
+            f.write('id' + ',' + 'pacount' + '\n')
+            for item in count_tuple_list:
+                f.write(item[0] + ',' + str(item[1]) + '\n')
+            f.close()
+        print('Finish {0} to {1}'.format(str(year - 5), str(year)))
+
+
+get_locations_by_year()

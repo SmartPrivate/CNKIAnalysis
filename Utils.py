@@ -1,13 +1,8 @@
 import logging
-import dbf
+import redis
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
+# r = redis.Redis(host='192.168.22.197', port=8173, db=2, decode_responses=True, encoding='utf-8')
 
-reader=open('district_level.csv','r',encoding='utf-8')
-header=reader.readline()
-while True:
-    line=reader.readline()
-    if not line:
-        break
-    print(line)
+print(32839/159898)
